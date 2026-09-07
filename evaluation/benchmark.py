@@ -266,7 +266,6 @@ def run_generalization_benchmark(
 
         n = len(examples)
         acc = correct / n if n > 0 else 0.0
-        gen_level_acc[level] = acc
         results[level] = {
             "accuracy": acc,
             "correct":  correct,

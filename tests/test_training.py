@@ -200,3 +200,104 @@ def test_tiny_model_overfits_tiny_dataset(small_tokenizer):
     )
     # Additionally, final loss should be below 1.0
     assert final_loss < 1.0, f"Final loss {final_loss:.4f} is still too high."
+
+
+# ── Generalization benchmark regression tests ─────────────────────────────────
+
+def test_run_generalization_benchmark_no_name_error(small_tokenizer):
+    """
+    Regression test for NameError: name 'gen_level_acc' is not defined.
+
+    Previously run_generalization_benchmark() referenced 'gen_level_acc'
+    which was a leftover variable that was never initialised after a refactor.
+    This test ensures the function completes without NameError and returns
+    the expected result structure for all 5 levels.
+    """
+    from evaluation.benchmark import run_generalization_benchmark
+    from data.generators.arithmetic import ArithmeticGenerator
+
+    torch.manual_seed(0)
+    cfg = get_debug_config()
+    cfg.vocab_size    = small_tokenizer.vocab_size
+    cfg.max_seq_len   = 128
+    cfg.pad_token_id  = small_tokenizer.pad_id
+    cfg.bos_token_id  = small_tokenizer.bos_id
+    cfg.eos_token_id  = small_tokenizer.eos_id
+    cfg.dropout       = 0.0
+    model = SmallTransformer(cfg)
+    model.eval()
+
+    generator = ArithmeticGenerator(seed=99, difficulty="easy")
+
+    # Must not raise NameError
+    results = run_generalization_benchmark(
+        model=model,
+        tokenizer=small_tokenizer,
+        generator=generator,
+        n_per_level=5,
+        max_new_tokens=20,
+        temperature=0.0,
+        device="cpu",
+        use_reasoning=True,
+        exclude_problems=None,
+    )
+
+    # Must return a dict with all 5 levels
+    assert isinstance(results, dict)
+    assert set(results.keys()) == {1, 2, 3, 4, 5}, \
+        f"Expected levels {{1,2,3,4,5}}, got {set(results.keys())}"
+
+    # Each level must have the expected keys and types
+    for level, r in results.items():
+        assert "accuracy" in r, f"Level {level} missing 'accuracy'"
+        assert "correct"  in r, f"Level {level} missing 'correct'"
+        assert "total"    in r, f"Level {level} missing 'total'"
+        assert "samples"  in r, f"Level {level} missing 'samples'"
+        assert isinstance(r["accuracy"], float), f"Level {level} accuracy not float"
+        assert 0.0 <= r["accuracy"] <= 1.0,      f"Level {level} accuracy out of range"
+        assert r["total"] > 0,                    f"Level {level} has 0 examples"
+
+    # The Colab notebook usage pattern must work without error
+    for level, r in results.items():
+        _ = f"Level {level}: {r['accuracy']:.1%} ({r['correct']}/{r['total']})"
+
+
+def test_run_generalization_benchmark_with_exclude(small_tokenizer):
+    """
+    Ensure exclude_problems parameter is accepted without error.
+    """
+    from evaluation.benchmark import run_generalization_benchmark
+    from data.generators.arithmetic import ArithmeticGenerator
+
+    torch.manual_seed(1)
+    cfg = get_debug_config()
+    cfg.vocab_size   = small_tokenizer.vocab_size
+    cfg.max_seq_len  = 128
+    cfg.pad_token_id = small_tokenizer.pad_id
+    cfg.bos_token_id = small_tokenizer.bos_id
+    cfg.eos_token_id = small_tokenizer.eos_id
+    cfg.dropout      = 0.0
+    model = SmallTransformer(cfg)
+    model.eval()
+
+    generator = ArithmeticGenerator(seed=7, difficulty="easy")
+    exclude = {"What is 5 + 3?", "What is 2 + 2?"}
+
+    results = run_generalization_benchmark(
+        model=model,
+        tokenizer=small_tokenizer,
+        generator=generator,
+        n_per_level=5,
+        max_new_tokens=20,
+        temperature=0.0,
+        device="cpu",
+        use_reasoning=True,
+        exclude_problems=exclude,
+    )
+
+    assert set(results.keys()) == {1, 2, 3, 4, 5}
+    # Excluded problems must not appear in any level
+    for level, r in results.items():
+        for sample in r["samples"]:
+            assert sample["problem"] not in exclude, \
+                f"Excluded problem found in generalization level {level}"
