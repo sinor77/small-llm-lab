@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Virtual environments
+venv/
+env/
+.env
+.venv/
+
+# pytest
+.pytest_cache/
+*.pytest_cache/
+
+# Experiment outputs (large, generated at runtime)
+experiments/results/
+data/datasets/
+data/tokenizer_data/
+
+# Checkpoint files (large binaries)
+*.pt
+*.pth
+*.ckpt
+
+# Generated output/log files from validation runs
+*.txt
+!requirements.txt
+!README.md
+
+# JSON results (generated at runtime — keep configs, not results)
+sanity_experiment_results.json
+pipeline_validation.txt
+split_verification_report.txt
+final_validation_report.txt
+validation_report.txt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/

@@ -1,0 +1,18 @@
+# Core ML
+torch>=2.1.0
+numpy>=1.24.0
+
+# Tokenizer
+tokenizers>=0.15.0
+
+# Data / serialization
+tqdm>=4.66.0
+
+# Config / experiment tracking
+pyyaml>=6.0
+
+# Testing
+pytest>=7.4.0
+
+# Optional: pretty printing / dev tools
+rich>=13.0.0
